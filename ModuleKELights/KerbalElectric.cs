@@ -12,7 +12,6 @@ namespace ModuleKELight
     {
         #region Vars
 
-        private bool dodebug = true;
         private bool blinkOn = false;
         private float blinkOnTime = 0.0f;
         private float blinkOffTime = 0.0f;
@@ -129,17 +128,14 @@ namespace ModuleKELight
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Blink Duration"), UI_FloatRange(minValue = 0.1f, maxValue = 10, stepIncrement = 0.1f)]
         public float blinkDuration = 1.0f;
 
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Pan Speed"), UI_FloatRange(minValue = 0.1f, maxValue = 1, stepIncrement = 0.01f)]
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Pan Speed"), UI_FloatRange(minValue = 0.01f, maxValue = 1, stepIncrement = 0.01f)]
         public float panSpeed = 0.01f;
 
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Tilt Speed"), UI_FloatRange(minValue = 0.1f, maxValue = 1, stepIncrement = 0.01f)]
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Tilt Speed"), UI_FloatRange(minValue = 0.01f, maxValue = 1, stepIncrement = 0.01f)]
         public float tiltSpeed = 0.01f;
 
         [KSPField]
-        public bool PanningOn = false;
-
-        [KSPField]
-        public bool TiltingOn = false;
+        public bool PanTilt = false;
 
         [KSPField]
         public bool canBlink = true;
@@ -268,7 +264,7 @@ namespace ModuleKELight
         {
             PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f),
                 new Vector2(0.5f, 0.5f),
-                new MultiOptionDialog("", "Light Position - Click pan once to start, again to stop.",
+                new MultiOptionDialog("","Light Position",
                     "Kerbal Electric",
                     HighLogic.UISkin,
                     new Rect(0.5f, 0.5f, 150f, 60f),
@@ -288,24 +284,22 @@ namespace ModuleKELight
                         new DialogGUIButton("Tilt Up",
                             delegate
                             {
-                                doTiltAnim(true);
+                                doTiltAnim(false);
                             }, 140.0f, 30.0f, false),
                         new DialogGUIButton("Tilt Down",
                             delegate
                             {
-                                doTiltAnim(false);
+                                doTiltAnim(true);
                             }
                             , 140.0f, 30.0f, false),
                         new DialogGUIButton("Close", () => { }, 140.0f, 30.0f, true)
                         )),
                 false,
                 HighLogic.UISkin,false,"Click once to start, again to stop.");
-
         }
 
         private void switchToColor(int selectedColor)
         {
-            Debug.Log("Switching Colors");
             string[] colorData = lightColorList[selectedColor].Split(',');
             currentColorName = colorData[0];
             lightB = (float)Convert.ToDouble(colorData[3]) / 255;
@@ -319,10 +313,6 @@ namespace ModuleKELight
             {
                 SetLens(new Color(lightR, lightG, lightB, 1));
             }
-            if (dodebug)
-            {
-                Debug.Log("Colors Switched");
-            }
         }
 
         public void animDoPlay(float animTime, float animSpeed)
@@ -334,55 +324,57 @@ namespace ModuleKELight
 
         public void doPanAnim(bool turnLeft)
         {
-            PanningOn = !PanningOn;
             if (panAnimation == null)
             {
                 GetAnims();
             }
-            if (panAnimation != null)
+            if (panAnimation == null)
             {
-                if (!PanningOn)
+                Debug.Log("Panning Animation Not Found");
+                return;
+            }
+            if (panAnimation[panAnimationName].normalizedSpeed != 0)
+            {
+                panAnimation[panAnimationName].normalizedSpeed = 0;
+            }
+            else
+            {
+                if (!turnLeft)
                 {
-                    panAnimation[panAnimationName].normalizedSpeed = 0;
+                    panAnimation[panAnimationName].normalizedSpeed = panSpeed;
+
                 }
                 else
                 {
-                    if (!turnLeft)
-                    {
-                        panAnimation[panAnimationName].normalizedSpeed = panSpeed;
-
-                    }
-                    else
-                    {
-                        panAnimation[panAnimationName].normalizedSpeed = panSpeed * -1f;
-                    }
+                   panAnimation[panAnimationName].normalizedSpeed = panSpeed * -1f;
                 }
             }
         }
 
         public void doTiltAnim(bool upward)
         {
-            TiltingOn = !TiltingOn;
             if (tiltAnimation == null)
             {
                 GetAnims();
             }
-            if (tiltAnimation != null)
+            if (tiltAnimation == null)
             {
-                if (!TiltingOn)
+                Debug.Log("Tilt Animation Not Found");
+                return;
+            }
+            if (tiltAnimation[tiltAnimationName].normalizedSpeed != 0)
+            {
+                tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+            }
+            else
+            {
+                if (upward)
                 {
-                    tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+                   tiltAnimation[tiltAnimationName].normalizedSpeed = tiltSpeed;
                 }
                 else
                 {
-                    if (upward)
-                    {
-                        tiltAnimation[tiltAnimationName].normalizedSpeed = tiltSpeed;
-                    }
-                    else
-                    {
-                        tiltAnimation[tiltAnimationName].normalizedSpeed = tiltSpeed * -1f;
-                    }
+                   tiltAnimation[tiltAnimationName].normalizedSpeed = tiltSpeed * -1f;
                 }
             }
         }
@@ -511,14 +503,14 @@ namespace ModuleKELight
                 if (animation[panAnimationName] != null)
                 {
                     panAnimation = animation;
-                    panAnimation[panAnimationName].normalizedSpeed = 0;
+                    panAnimation[panAnimationName].normalizedSpeed = panSpeed;
                     panAnimation[panAnimationName].normalizedTime = panTime;
                     panAnimation.Play();
                 }
                 if (animation[tiltAnimationName] != null)
                 {
                     tiltAnimation = animation;
-                    tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+                    tiltAnimation[tiltAnimationName].normalizedSpeed = tiltSpeed;
                     tiltAnimation[tiltAnimationName].normalizedTime = tiltTime;
                     tiltAnimation.Play();
                 }
@@ -600,11 +592,14 @@ namespace ModuleKELight
                 Fields["blinkDuration"].guiActiveEditor = false;
                 Fields["blinkDelay"].guiActiveEditor = false;
             }
-            //Fields["panSpeed"].guiActive = false;
-            //Fields["panSpeed"].guiActiveEditor = false;
-            //Fields["tiltSpeed"].guiActive = false;
-            //Fields["tiltSpeed"].guiActiveEditor = false;
-            //Events["PanTiltAction"].active = false;
+            if (!PanTilt)
+            {
+                Fields["panSpeed"].guiActive = false;
+                Fields["panSpeed"].guiActiveEditor = false;
+                Fields["tiltSpeed"].guiActive = false;
+                Fields["tiltSpeed"].guiActiveEditor = false;
+                Events["PanTiltAction"].active = false;
+            }
             rend = part.GetComponentsInChildren<Renderer>();
             GetAnims();
             myLights = part.GetComponentsInChildren<Light>();
@@ -612,7 +607,21 @@ namespace ModuleKELight
             {
                 L.color = new Color(lightR, lightG, lightB, 1);
             }
-            SetLight(isOn);
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                SetLight(false);
+                if (PanTilt)
+                {
+                    tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+                    tiltAnimation[tiltAnimationName].normalizedTime = 0;
+                    panAnimation[panAnimationName].normalizedSpeed = 0;
+                    panAnimation[panAnimationName].normalizedTime = 0;
+                }
+            }
+            else
+            {
+                SetLight(isOn);
+            }
             SetLens(new Color(lightR, lightG, lightB, 1));
             if (HighLogic.LoadedSceneIsEditor)
             {
@@ -634,16 +643,6 @@ namespace ModuleKELight
 
         public void FixedUpdate()
         {
-            if (tiltAnimation[tiltAnimationName].normalizedTime > 1)
-            {
-                tiltAnimation[tiltAnimationName].normalizedTime = 1;
-                TiltingOn = false;
-            }
-            if (tiltAnimation[tiltAnimationName].normalizedTime < 0)
-            {
-                tiltAnimation[tiltAnimationName].normalizedTime = 0;
-                TiltingOn = false;
-            }
             if (HighLogic.LoadedSceneIsEditor)
             {
                 currentColor = new Color(lightR, lightG, lightB, 1);
@@ -666,8 +665,46 @@ namespace ModuleKELight
                     if (resourceFraction < 0.99f)
                     {
                         SetLight(false);
+                        if (PanTilt)
+                        {
+                            tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+                            panAnimation[panAnimationName].normalizedSpeed = 0;
+                        }
                     }
                 }
+            }
+            if (PanTilt)
+            {
+                if (tiltAnimation[tiltAnimationName].wrapMode != WrapMode.Loop)
+                {
+                    if (tiltAnimation[tiltAnimationName].normalizedTime > 1)
+                    {
+                        tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+                        tiltAnimation[tiltAnimationName].normalizedTime = 1;
+                    }
+                    if (tiltAnimation[tiltAnimationName].normalizedTime < 0)
+                    {
+                        tiltAnimation[tiltAnimationName].normalizedSpeed = 0;
+                        tiltAnimation[tiltAnimationName].normalizedTime = 0;
+                    }
+                }
+                if (panAnimation[panAnimationName].wrapMode != WrapMode.Loop)
+                {
+                    if (panAnimation[panAnimationName].normalizedTime > 1)
+                    {
+                        panAnimation[panAnimationName].normalizedSpeed = 0;
+                        panAnimation[panAnimationName].normalizedTime = 1;
+                    }
+                    if (panAnimation[panAnimationName].normalizedTime < 0)
+                    {
+                        panAnimation[panAnimationName].normalizedSpeed = 0;
+                        panAnimation[panAnimationName].normalizedTime = 0;
+                    }
+                }
+                //panSpeed = panAnimation[panAnimationName].normalizedSpeed;
+                panTime = panAnimation[panAnimationName].normalizedTime;
+                //tiltSpeed = tiltAnimation[tiltAnimationName].normalizedSpeed;
+                tiltTime = tiltAnimation[tiltAnimationName].normalizedTime;
             }
             if (blinkActive && isOn)
             {
